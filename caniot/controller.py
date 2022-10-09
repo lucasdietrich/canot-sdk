@@ -9,7 +9,7 @@ import ssl
 import struct
 import time
 
-from typing import Dict
+from typing import Dict, List
 
 from .url import URL
 
@@ -106,6 +106,23 @@ class Controller:
 
     def get_ha_stats(self) -> Dict:
         return self.req("GET", self.url.sub("/ha/stats")).json()
+
+    def get_devices_page(self, page: int = 0) -> List:
+        return self.req("GET", self.url.sub(f"/devices?page={page}")).json()
+
+    def get_devices(self) -> List:
+        page = 0
+        devices = []
+
+        while True:
+            to_append = self.get_devices_page(page)
+            if len(to_append) > 0:
+                devices += to_append
+                page += 1
+            else:
+                break
+        
+        return devices
 
     def __enter__(self):
         if self.session:

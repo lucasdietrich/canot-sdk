@@ -9,5 +9,5 @@ from caniot.controller import Controller
 from pprint import pprint
 
 with Controller("192.0.2.1") as ctrl:
-    ctrl.get_info()
-    ctrl.get_ha_stats()
+    pprint(ctrl.get_info())
+    pprint(ctrl.get_ha_stats())
