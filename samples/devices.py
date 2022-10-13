@@ -8,7 +8,12 @@ from pprint import pprint
 from caniot.controller import Controller
 import json
 
-with Controller("192.0.2.1") as ctrl:
+qemu = False
+qemu = True
+
+ip = "192.0.2.1" if qemu else "192.168.10.240"
+
+with Controller(ip) as ctrl:
     devices = ctrl.get_devices()
     stats = ctrl.get_ha_stats()
 

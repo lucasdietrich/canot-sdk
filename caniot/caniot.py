@@ -13,36 +13,15 @@ from typing import Union, List, Dict, Tuple
 
 @dataclass
 class DeviceId:
-    class Class(IntEnum):
-        C0: int = 0
-        C1: int = 1
-        C2: int = 2
-        C3: int = 3
-        C4: int = 4
-        C5: int = 5
-        C6: int = 6
-        C7: int = 7
-
-    def __init__(self, cls: Union[int, Class], sid: int):
-        self.cls = cls
-        self.sid = sid
-
-    def set_cls(self, cls: Union[int, Class]):
-        self._cls = DeviceId.Class(cls)
-
-    def get_cls(self) -> Class:
-        return self._cls
-
-    _cls: Class
-    sid: int
-
-    cls: Class = property(get_cls, set_cls)
+    def __init__(self, cls: int, sid: int):
+        self.cls = cls & 0x7
+        self.sid = sid & 0x7
 
     @classmethod
     def from_int(cls, deviceid: int) -> DeviceId:
         return DeviceId(
-            cls=DeviceId.Class(deviceid & 7),
-            sid=(deviceid >> 3) & 7
+            cls=int(deviceid) & 7,
+            sid=int(deviceid) >> 3
         )
 
     def get_id(self) -> int:
