@@ -12,7 +12,7 @@ import ssl
 import struct
 import time
 
-from .caniot import DeviceId
+from .caniot import DeviceId, MsgId
 
 from abc import ABC, abstractmethod
 
@@ -23,6 +23,7 @@ from .url import URL
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+    
 
 class Controller:
     def __init__(self, host: str = "192.0.2.1", port: int = None, secure: bool = False, 
@@ -108,16 +109,24 @@ class Controller:
 
         logger.info(f"[{t1 - t0:.3f} s] {method} {url} status={resp.status_code} len={len(resp.content)}")
 
-        return resp
+        result = None
+
+        if resp.status_code == 200:
+            try:
+                result = resp.json()
+            except json.decoder.JSONDecodeError:
+                result = resp.text
+
+        return result
 
     def get_info(self) -> Dict:
-        return self.req("GET", self.url.sub("info")).json()
+        return self.req("GET", self.url.sub("info"))
 
     def get_ha_stats(self) -> Dict:
-        return self.req("GET", self.url.sub("ha/stats")).json()
+        return self.req("GET", self.url.sub("ha/stats"))
 
     def get_devices_page(self, page: int = 0) -> List:
-        return self.req("GET", self.url.sub(f"devices?page={page}")).json()
+        return self.req("GET", self.url.sub(f"devices?page={page}"))
 
     def get_metrics(self) -> str:
         return self.req("GET", self.url.sub("metrics")).text
@@ -198,6 +207,9 @@ class CaniotAPI(RestAPI):
         def write_attribute(self, attr: int, value: int):
             return self.api.write_attribute(self.did, attr, value)
 
+        def command_cls1(self, vals: Iterable[str]):
+            return self.api.command_cls1(self.did, vals)
+
     def open_device(self, did: DeviceId) -> CaniotAPI.Device:
         return CaniotAPI.Device(self, did)
 
@@ -206,7 +218,7 @@ class CaniotAPI(RestAPI):
             "did": int(did),
             "ep": ep
         })
-        return self.ctrl.req("GET", url, self.app_timeout_header).json()
+        return self.ctrl.req("GET", url, self.app_timeout_header)
 
     def command(self, did: Union[DeviceId, int], ep: int, vals: Iterable[int]):
         if vals is None:
@@ -220,6 +232,13 @@ class CaniotAPI(RestAPI):
         })
         return self.ctrl.req("POST", url, json=arr, headers=self.app_timeout_header)
 
+    def command_cls1(self, did: Union[DeviceId, int], vals: Iterable[str]):
+        url = self.ctrl.url.sub("devices/caniot/{did}/endpoint/blc1/command").project(**{
+            "did": int(did),
+            "ep": MsgId.Endpoint.BoardControlEndpoint,
+        })
+        return self.ctrl.req("POST", url, json=list(vals), headers=self.app_timeout_header)
+
     def read_attribute(self, did: Union[DeviceId, int], attr: int) -> requests.Response:
         url = self.ctrl.url.sub("devices/caniot/{did}/attribute/{attr:x}").project(**{
             "did": int(did),
@@ -228,7 +247,7 @@ class CaniotAPI(RestAPI):
         resp = self.ctrl.req("GET", url, headers=self.app_timeout_header)
 
         if resp.status_code == 200:
-            return resp.json()
+            return resp
 
     def write_attribute(self, did: Union[DeviceId, int], attr: int, value: Union[int, bytes]):
         url = self.ctrl.url.sub("devices/caniot/{did}/attribute/{attr:x}").project(**{
@@ -236,7 +255,7 @@ class CaniotAPI(RestAPI):
             "attr": attr
         })
         return self.ctrl.req("PUT", url, json={"value": str(hex(value))}, 
-                             headers=self.app_timeout_header).json()
+                             headers=self.app_timeout_header)
 
 class TestAPI(RestAPI):
     def __init__(self, ctrl):

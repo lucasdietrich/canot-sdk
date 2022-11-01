@@ -13,4 +13,7 @@ ip = "192.0.2.1" if True else "192.168.10.240"
 
 with Controller(ip) as ctrl:
     with ctrl.caniot.open_device(DeviceId(1, 7)) as device:
-        pprint(device.read_attribute(0x0001))
+        pprint(device.command_cls1([
+            "none",
+            "set_on",
+        ]))
