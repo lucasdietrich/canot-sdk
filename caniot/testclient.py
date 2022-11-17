@@ -19,10 +19,19 @@ ChunksGeneratorType = Iterator[bytes]
 def data_gen_zeros(size: int) -> bytes:
     return bytes(size)
 
+def data_gen_seq(size: int) -> bytes:
+    array = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    ret = ""
+    for _ in range(size):
+        ret += array[_ % len(array)]
+    return ret.encode()
+
+def calc_checksum(data: bytes) -> int:
+    return sum(data)
 
 class TestClient(Controller):
     def test_big_data(self, size=32768) -> requests.Response:
-        data = data_gen_zeros(size)
+        data = data_gen_seq(size)
         req = {
             **self.default_req,
             "method": "POST",
@@ -31,7 +40,15 @@ class TestClient(Controller):
             "headers": self.default_headers,
             "data": data
         }
-        return requests.request(**req)
+        resp = requests.request(**req)
+        if resp and resp.status_code == 200:
+            checksum = calc_checksum(data)
+            host_checksum = resp.json()["payload_checksum"]
+            if checksum == host_checksum:
+                print("Checksum OK")
+            else:
+                print(f"Checksum ERROR (expected: {checksum}, got: {host_checksum})")
+        return resp
 
     def test_simultaneous(self, simultaneous: int = 5, count: int = 5):
         sessions = [requests.Session() for _ in range(simultaneous)]
@@ -87,6 +104,9 @@ class TestClient(Controller):
         }
 
         return requests.request(**req)
+
+    def test_any(self):
+        raise Exception("Not implemented")
 
     def test_multipart(self, size: int = 128768,
                        chunk_length_default: int = 512,
