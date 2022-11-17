@@ -6,17 +6,21 @@
 
 from __future__ import annotations
 import json
+from json.decoder import JSONDecodeError
 
 import requests
 import ssl
 import struct
 import time
+import re
 
 from .caniot import DeviceId, MsgId
 
 from abc import ABC, abstractmethod
 
 from typing import Dict, List, Union, Iterable
+
+from .utils import MakeChunks
 
 from .url import URL
 
@@ -65,6 +69,20 @@ class Controller:
     def is_http_session(self) -> bool:
         return self.session is not None
 
+    def _req(self,
+             method,
+             url, 
+             **kwargs) -> requests.Response:
+        request_method = self.session.request if self.session else requests.request
+
+        t0 = time.perf_counter()
+        resp = request_method(method, url, **kwargs)
+        t1 = time.perf_counter()
+
+        logger.info(f"[{t1 - t0:.3f} s] {method} {url} status={resp.status_code} len={len(resp.content)}")
+
+        return resp
+
     def req(self,
             method,
             url,
@@ -84,40 +102,50 @@ class Controller:
             json=None
             ) -> requests.Response:
         
-        request_method = self.session.request if self.session else requests.request
-
-        t0 = time.perf_counter()
-        resp = request_method(
-            method=method,
-            url=url,
-            params=params,
-            data=data,
-            headers=headers,
-            cookies=cookies,
-            files=files,
-            auth=auth,
-            timeout=timeout,
-            allow_redirects=allow_redirects,
-            proxies=proxies,
-            hooks=hooks,
-            stream=stream,
-            verify=verify,
-            cert=cert,
-            json=json
-        )
-        t1 = time.perf_counter()
-
-        logger.info(f"[{t1 - t0:.3f} s] {method} {url} status={resp.status_code} len={len(resp.content)}")
-
-        result = None
+        resp = self._req(method, url, params=params, data=data, headers=headers, cookies=cookies, files=files, auth=auth, timeout=timeout, allow_redirects=allow_redirects, proxies=proxies, hooks=hooks, stream=stream, verify=verify, cert=cert, json=json)
 
         if resp.status_code == 200:
             try:
                 result = resp.json()
-            except json.decoder.JSONDecodeError:
+            except JSONDecodeError as e:
                 result = resp.text
 
         return result
+
+    def download(self, filepath: str, dest: str) -> bool:
+        resp = self._req("GET", self.url.sub(f"files/{filepath}"))
+
+        if resp.status_code == 200:
+            with open(dest, "wb") as f:
+                content = resp.content
+                size = len(content)
+                f.write(content)
+                logger.info(f"Downloaded {filepath} [{size} B] to {dest}")
+                return True
+        else:
+            logger.error(f"Failed to download {filepath} to {dest}")
+            return False
+
+    def upload(self, source: str, filepath: str, chunks_size: int = 1024) -> requests.Response:
+        rec_path = re.compile(r"^(\./)?(?P<filepath>([a-zA-Z0-9_]+/)*[a-zA-Z0-9_\.]+)$")
+
+        m = rec_path.match(filepath)
+        if m is None:
+            raise ValueError(f"Invalid filepath: {filepath}")
+        else:
+            filepath = m.group("filepath")
+
+        print(filepath)
+
+        binary = open(source, "rb").read()
+        if chunks_size:
+            binary = MakeChunks(binary, chunks_size)
+
+        return self._req(
+            "POST",
+            self.url.sub(f"files/{filepath}"),
+            data=binary,
+        )
 
     def get_info(self) -> Dict:
         return self.req("GET", self.url.sub("info"))
@@ -130,6 +158,9 @@ class Controller:
 
     def get_metrics(self) -> str:
         return self.req("GET", self.url.sub("metrics")).text
+
+    def get_room(self, room_id: int) -> dict:
+        return self.req("GET", self.url.sub(f"room/{room_id}"))
 
     def get_devices(self) -> List:
         page = 0
@@ -151,7 +182,7 @@ class Controller:
         arr = list(vals)
         assert len(arr) <= 8
         assert all(map(lambda x: 0 <= x <= 255 and isinstance(x, int), arr))
-        url = self.url.sub("if/can/{id:X}").project(arbitration_id=arbitration_id)
+        url = self.url.sub("if/can/{arbitration_id:X}").project(arbitration_id=arbitration_id)
         return self.req("POST", url, json=arr)
         
     def __enter__(self):
@@ -171,7 +202,6 @@ class Controller:
         if self.session:
             self.session.close()
             self.session = None
-
 
 class RestAPI(ABC):
     def __init__(self, ctrl, timeout: float = 1.0) -> None:

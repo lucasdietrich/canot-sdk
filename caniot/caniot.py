@@ -47,7 +47,7 @@ class DeviceId:
 
     @classmethod
     def Broadcast(cls) -> DeviceId:
-        return DeviceId(cls=DeviceId.Class.CLSBROADCAST, sid=0b111)
+        return DeviceId(cls=0b111, sid=0b111)
 
 
 @dataclass
