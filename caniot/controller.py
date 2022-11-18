@@ -126,8 +126,12 @@ class Controller:
             logger.error(f"Failed to download {filepath} to {dest}")
             return False
 
-    def upload(self, source: str, filepath: str, chunks_size: int = 1024) -> requests.Response:
-        rec_path = re.compile(r"^(\./)?(?P<filepath>([a-zA-Z0-9_]+/)*[a-zA-Z0-9_\.]+)$")
+    def upload(self, source: str,
+               filepath: str,
+               chunked_encoding: bool = True,
+               chunks_size: int = 1024) -> requests.Response:
+        rec_path = re.compile(
+            r"^(\./)?(?P<filepath>([a-zA-Z0-9_]+/)*[a-zA-Z0-9_\.]+)$")
 
         m = rec_path.match(filepath)
         if m is None:
@@ -138,8 +142,10 @@ class Controller:
         print(filepath)
 
         binary = open(source, "rb").read()
-        if chunks_size:
-            binary = MakeChunks(binary, chunks_size)
+        
+        if chunked_encoding:
+            if chunks_size:
+                binary = MakeChunks(binary, chunks_size)
 
         return self._req(
             "POST",
