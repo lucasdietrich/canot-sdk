@@ -14,7 +14,8 @@ with Controller(ip) as ctrl:
     # resp = ctrl.download("lua/math.lua", "./tmp/math.lua")
 
     while True:
-        ctrl.upload("./tmp/ha_devices.json", "devices.json", chunked_encoding=False, chunks_size=1024)
-        ctrl.download("devices.json", "./tmp/ha_devices2.json")
+        ctrl.upload("./tmp/ha_devices.json", "my/dir/devices.json", chunked_encoding=False, chunks_size=1024)
+        ctrl.download("my/dir/devices.json", "./tmp/ha_devices2.json")
+        break
     
     # ctrl.upload("./tmp/ha_devices.json", "tmp/devices.json", 1024)

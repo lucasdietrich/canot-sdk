@@ -131,15 +131,13 @@ class Controller:
                chunked_encoding: bool = True,
                chunks_size: int = 1024) -> requests.Response:
         rec_path = re.compile(
-            r"^(\./)?(?P<filepath>([a-zA-Z0-9_]+/)*[a-zA-Z0-9_\.]+)$")
+            r"^(\.?/)?(?P<filepath>([a-zA-Z0-9_]+/)*[a-zA-Z0-9_\-\.]+)$")
 
         m = rec_path.match(filepath)
         if m is None:
             raise ValueError(f"Invalid filepath: {filepath}")
         else:
             filepath = m.group("filepath")
-
-        print(filepath)
 
         binary = open(source, "rb").read()
         
