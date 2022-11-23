@@ -52,6 +52,7 @@ class Controller:
 
         self.session = None
 
+        # HTTP Timeout
         self.timeout = 5.0
 
         self.url = URL(f"{self.host}:{self.port}", secure=self.secure)
@@ -101,14 +102,17 @@ class Controller:
             cert=None,
             json=None
             ) -> requests.Response:
-        
         resp = self._req(method, url, params=params, data=data, headers=headers, cookies=cookies, files=files, auth=auth, timeout=timeout, allow_redirects=allow_redirects, proxies=proxies, hooks=hooks, stream=stream, verify=verify, cert=cert, json=json)
+
+        result = None
 
         if resp.status_code == 200:
             try:
                 result = resp.json()
             except JSONDecodeError as e:
                 result = resp.text
+        elif resp.status_code == 204:
+            result = ""
 
         return result
 
@@ -208,14 +212,26 @@ class Controller:
             self.session = None
 
 class RestAPI(ABC):
-    def __init__(self, ctrl, timeout: float = 1.0) -> None:
+    _app_timeout: float
+
+    def __init__(self, ctrl, app_timeout: float = 0.5) -> None:
         self.ctrl: Controller = ctrl
 
-        self.app_timeout: float = timeout
+        # Application timeout
+        self.app_timeout = app_timeout
 
+    def set_app_timeout(self, timeout: float):
+        self._app_timeout = timeout
         self.app_timeout_header = {
-            "Timeout-ms": str(int(self.app_timeout * 1000)),
+            "Timeout-ms": str(int(self._app_timeout * 1000)),
         }
+    
+    def get_app_timeout(self) -> float:
+        return self._app_timeout
+
+    app_timeout = property(get_app_timeout, set_app_timeout)
+
+    
 
 class CaniotAPI(RestAPI):
     def __init__(self, ctrl):
@@ -252,7 +268,7 @@ class CaniotAPI(RestAPI):
             "did": int(did),
             "ep": ep
         })
-        return self.ctrl.req("GET", url, self.app_timeout_header)
+        return self.ctrl.req("GET", url, headers=self.app_timeout_header)
 
     def command(self, did: Union[DeviceId, int], ep: int, vals: Iterable[int]):
         if vals is None:

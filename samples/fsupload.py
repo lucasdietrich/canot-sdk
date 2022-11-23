@@ -20,7 +20,10 @@ fsdir = "./fs"
 tmpdir = "./tmp"
 
 with Controller(ip) as ctrl:
-    for root, subdirs, files in os.walk(fsdir):
+    for root, subdirs, files in os.walk(fsdir, ):
+        if ".git" in subdirs:
+            subdirs.remove(".git")
+
         dest_dir_path = os.path.join("/", root[len(fsdir):])
         for file in files:
             src_path = os.path.join(root, file)

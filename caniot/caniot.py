@@ -42,8 +42,7 @@ class DeviceId:
         if self.is_broadcast():
             return "Broadcast (sid=0x7, cls = 0x7)"
         else:
-            cls = DeviceId.Class(self.cls)
-            return f"DeviceId={self.get_id()} (cls = {cls.name} [{cls.value}], sid={self.sid})"
+            return f"DeviceId={self.get_id()} (cls = {self.cls}, sid={self.sid})"
 
     @classmethod
     def Broadcast(cls) -> DeviceId:

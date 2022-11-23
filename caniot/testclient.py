@@ -30,12 +30,12 @@ def calc_checksum(data: bytes) -> int:
     return sum(data)
 
 class TestClient(Controller):
-    def test_big_data(self, size=32768) -> requests.Response:
+    def test_big_data(self, size=32768, to_stream_res: bool = False) -> requests.Response:
         data = data_gen_seq(size)
         req = {
             **self.default_req,
             "method": "POST",
-            "url": self.url + "test/messaging",
+            "url": self.url + ("test/messaging" if not to_stream_res else "test/streaming"),
             "timeout": self.timeout,
             "headers": self.default_headers,
             "data": data

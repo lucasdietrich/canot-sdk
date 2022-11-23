@@ -4,7 +4,7 @@ from enum import IntEnum
 U10_MAX_VALUE = 0x3ff
 
 class XPS(IntEnum):
-    SET_NONE = 0
+    NONE = 0
     SET_ON = 1
     SET_OFF = 2
     TOGGLE = 3
