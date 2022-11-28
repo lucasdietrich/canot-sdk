@@ -10,7 +10,7 @@ mid = MsgId(
     MsgId.FrameType.Telemetry,
     MsgId.QueryType.Query,
     DeviceId(0x01, 0x07),
-    MsgId.Endpoint.BoardControlEndpoint
+    MsgId.Endpoint.BoardLevelControl
 )
 
 print(mid, int(mid))

@@ -73,15 +73,15 @@ class MsgId:
 
     class Endpoint(IntEnum):
 
-        AppDefaultEndpoint = 0
-        Endpoint1 = 1
-        Endpoint2 = 2
-        BoardControlEndpoint = 3
+        ApplicationMain = 0 # app0
+        ApplicationSecond = 1 # app1
+        ApplicationThird = 2 # app2
+        BoardLevelControl = 3 # blc
 
         def join(self, controller: MsgId.Endpoint):
             return self | controller
 
-    endpoint: Endpoint = Endpoint.AppDefaultEndpoint
+    endpoint: Endpoint = Endpoint.ApplicationMain
 
     extended_id: int = 0
 
@@ -200,7 +200,7 @@ if __name__ == "__main__":
     msgid = MsgId(
         frame_type=MsgId.FrameType.Telemetry,
         query_type=MsgId.QueryType.Query,
-        endpoint=MsgId.Endpoint.AppDefaultEndpoint,
+        endpoint=MsgId.Endpoint.ApplicationMain,
         device_id=DeviceId(DeviceId.Class.CUSTOMPCB, 1)
     )
 

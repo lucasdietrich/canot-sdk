@@ -18,7 +18,7 @@ from .caniot import DeviceId, MsgId
 
 from abc import ABC, abstractmethod
 
-from typing import Dict, List, Union, Iterable
+from typing import Dict, List, Union, Iterable, Optional
 
 from .utils import MakeChunks
 
@@ -101,7 +101,7 @@ class Controller:
             verify=None,
             cert=None,
             json=None
-            ) -> requests.Response:
+            ) -> Optional[Union[dict, str]]:
         resp = self._req(method, url, params=params, data=data, headers=headers, cookies=cookies, files=files, auth=auth, timeout=timeout, allow_redirects=allow_redirects, proxies=proxies, hooks=hooks, stream=stream, verify=verify, cert=cert, json=json)
 
         result = None
@@ -113,6 +113,8 @@ class Controller:
                 result = resp.text
         elif resp.status_code == 204:
             result = ""
+        else:
+            logger.error(f"Request failed: {resp.status_code} {resp.reason}")
 
         return result
 
@@ -248,7 +250,7 @@ class CaniotAPI(RestAPI):
         def __exit__(self, exc_type, exc_value, traceback):
             pass
 
-        def read_attribute(self, attr: int):
+        def read_attribute(self, attr: int) -> dict:
             return self.api.read_attribute(self.did, attr)
 
         def request_telemetry(self, ep: int):
@@ -257,8 +259,17 @@ class CaniotAPI(RestAPI):
         def write_attribute(self, attr: int, value: int):
             return self.api.write_attribute(self.did, attr, value)
 
+        def command(self, ep: int, data: Iterable[int]):
+            return self.api.command(self.did, ep, data)
+
         def command_cls1(self, vals: Iterable[str]):
             return self.api.command_cls1(self.did, vals)
+        
+        def reboot(self):
+            return self.api.reboot(self.did)
+
+        def factory_reset(self):
+            return self.api.factory_reset(self.did)
 
     def open_device(self, did: DeviceId) -> CaniotAPI.Device:
         return CaniotAPI.Device(self, did)
@@ -285,7 +296,7 @@ class CaniotAPI(RestAPI):
     def command_cls1(self, did: Union[DeviceId, int], vals: Iterable[str]):
         url = self.ctrl.url.sub("devices/caniot/{did}/endpoint/blc1/command").project(**{
             "did": int(did),
-            "ep": MsgId.Endpoint.BoardControlEndpoint,
+            "ep": MsgId.Endpoint.BoardLevelControl,
         })
         return self.ctrl.req("POST", url, json=list(vals), headers=self.app_timeout_header)
 
@@ -294,10 +305,7 @@ class CaniotAPI(RestAPI):
             "did": int(did),
             "attr": attr
         })
-        resp = self.ctrl.req("GET", url, headers=self.app_timeout_header)
-
-        if resp.status_code == 200:
-            return resp
+        return self.ctrl.req("GET", url, headers=self.app_timeout_header)
 
     def write_attribute(self, did: Union[DeviceId, int], attr: int, value: Union[int, bytes]):
         url = self.ctrl.url.sub("devices/caniot/{did}/attribute/{attr:x}").project(**{
@@ -306,6 +314,18 @@ class CaniotAPI(RestAPI):
         })
         return self.ctrl.req("PUT", url, json={"value": str(hex(value))}, 
                              headers=self.app_timeout_header)
+
+    def factory_reset(self, did: Union[DeviceId, int]):
+        url = self.ctrl.url.sub("devices/caniot/{did}/factory_reset").project(**{
+            "did": int(did),
+        })
+        return self.ctrl.req("POST", url, headers=self.app_timeout_header)
+
+    def reboot(self, did: Union[DeviceId, int]):
+        url = self.ctrl.url.sub("devices/caniot/{did}/reboot").project(**{
+            "did": int(did),
+        })
+        return self.ctrl.req("POST", url, headers=self.app_timeout_header)
 
 class TestAPI(RestAPI):
     def __init__(self, ctrl):

@@ -13,6 +13,18 @@ class XPS(IntEnum):
     PULSE_OFF = 6
     PULSE_CANCEL = 7
 
+    def __str__(self):
+        return self.name
+
+class HeatingStatus(IntEnum):
+    NONE = 0
+    COMFORT = 1
+    COMFORT_MIN_1 = 2
+    COMFORT_MIN_2 = 3
+    ENERGY_SAVING = 4
+    FROST_FREE = 5
+    OFF = 6
+
 def IntHum2float(H: int) -> float:
     return (H & U10_MAX_VALUE) / 100.0
 
