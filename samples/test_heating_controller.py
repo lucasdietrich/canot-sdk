@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-from caniot.caniot import DeviceId, MsgId
+from caniot.caniot import DeviceId, Endpoint
 from caniot.datatypes import XPS, HeatingStatus
 from caniot.controller import Controller
 
@@ -20,17 +20,18 @@ ip = "192.0.2.1" if False else "192.168.10.240"
 with Controller(ip) as ctrl:
     ctrl.caniot.app_timeout = 1.0
 
-    with ctrl.caniot.open_device(DeviceId(1, 1)) as device:
-        h1 = HeatingStatus.COMFORT_MIN_1
-        h2 = HeatingStatus.COMFORT_MIN_1
-        h3 = HeatingStatus.COMFORT_MIN_2
-        h4 = HeatingStatus.COMFORT_MIN_2
+    with ctrl.caniot.open_device(DeviceId(1, 0)) as device:
+        if False:
+            h1 = HeatingStatus.COMFORT_MIN_1
+            h2 = HeatingStatus.COMFORT_MIN_1
+            h3 = HeatingStatus.COMFORT_MIN_2
+            h4 = HeatingStatus.COMFORT_MIN_2
 
-        ret = device.command(MsgId.Endpoint.ApplicationMain, [
-            h1.value + (h2.value << 4),
-            h3.value + (h4.value << 4),
-        ])
-        print(ret)
+            ret = device.command(Endpoint.ApplicationMain, [
+                h1.value + (h2.value << 4),
+                h3.value + (h4.value << 4),
+            ])
+            print(ret)
 
         if False:
             for i in range(0, 19):
@@ -72,7 +73,10 @@ with Controller(ip) as ctrl:
             pprint(resp)
 
         while False:
-            resp = device.request_telemetry(MsgId.Endpoint.BoardLevelControl.value)
+            resp = device.request_telemetry(Endpoint.BoardLevelControl.value)
             pprint(resp)
+
+        resp = device.request_telemetry(Endpoint.BoardLevelControl.value)
+        pprint(resp)
 
         

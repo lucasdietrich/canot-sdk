@@ -48,39 +48,34 @@ class DeviceId:
     def Broadcast(cls) -> DeviceId:
         return DeviceId(cls=0b111, sid=0b111)
 
+class IdType(IntEnum):
+    Standard = 11
+    Extended = 29
+
+class FrameType(IntEnum):
+    Command = 0
+    Telemetry = 1
+    WriteAttribute = 2
+    ReadAttribute = 3
+
+class QueryType(IntEnum):
+    Query = 0
+    Response = 1
+
+class Endpoint(IntEnum):
+    ApplicationMain = 0 # app0
+    ApplicationSecond = 1 # app1
+    ApplicationThird = 2 # app2
+    BoardLevelControl = 3 # blc
+
+    def join(self, controller: Endpoint):
+        return self | controller
 
 @dataclass
 class MsgId:
-    class IdType(IntEnum):
-        Standard = 11
-        Extended = 29
-
-    class FrameType(IntEnum):
-        Command = 0
-        Telemetry = 1
-        WriteAttribute = 2
-        ReadAttribute = 3
-
     frame_type: FrameType
-
-    class QueryType(IntEnum):
-        Query = 0
-        Response = 1
-
     query_type: QueryType
-
     device_id: DeviceId
-
-    class Endpoint(IntEnum):
-
-        ApplicationMain = 0 # app0
-        ApplicationSecond = 1 # app1
-        ApplicationThird = 2 # app2
-        BoardLevelControl = 3 # blc
-
-        def join(self, controller: MsgId.Endpoint):
-            return self | controller
-
     endpoint: Endpoint = Endpoint.ApplicationMain
 
     extended_id: int = 0
@@ -96,9 +91,9 @@ class MsgId:
     def __repr__(self):
         if self.is_valid():
             return f"[{hex(self)}] " \
-                   f"{MsgId.QueryType(self.query_type).name} " \
-                   f"{MsgId.FrameType(self.frame_type).name} " \
-                   f"{MsgId.Endpoint(self.endpoint).name} " \
+                   f"{QueryType(self.query_type).name} " \
+                   f"{FrameType(self.frame_type).name} " \
+                   f"{Endpoint(self.endpoint).name} " \
                    f"{self.device_id}"
         elif self.is_error():
             return f"[{hex(self)}] ERROR message from {self.device_id}"
@@ -117,7 +112,7 @@ class MsgId:
     def get(self) -> int:
         std_id = self.frame_type | self.query_type << 2 | self.device_id.get_id() << 3 | self.endpoint << 9
 
-        if self.id_type is MsgId.IdType.Extended:
+        if self.id_type is IdType.Extended:
             return std_id | self.extended_id << 11
         else:
             return std_id
@@ -125,55 +120,54 @@ class MsgId:
     @staticmethod
     def from_int(value: int, extended: bool = None) -> MsgId:
         return MsgId(
-            frame_type=MsgId.FrameType(value & 0b11),
-            query_type=MsgId.QueryType((value >> 2) & 1),
+            frame_type=FrameType(value & 0b11),
+            query_type=QueryType((value >> 2) & 1),
             device_id=DeviceId.from_int((value >> 3) & 0b111111),
-            endpoint=MsgId.Endpoint((value >> 9) & 0b11),
+            endpoint=Endpoint((value >> 9) & 0b11),
             extended_id=value >> 11 if extended is None or extended is True else 0,
-            id_type=MsgId.IdType.Extended if value >> 11 and extended is not False else MsgId.IdType.Standard
+            id_type=IdType.Extended if value >> 11 and extended is not False else IdType.Standard
         )
 
     def bin_repr(self) -> str:
         return bin(int(self))[2:].rjust(self.id_type, "0")
 
     def is_error(self) -> bool:
-        return self.frame_type == MsgId.FrameType.Command and self.query_type == MsgId.QueryType.Response
+        return self.frame_type == FrameType.Command and self.query_type == QueryType.Response
 
     def is_valid(self) -> bool:
         return self.device_id != 0 and not self.is_error() and \
-               (self.query_type == MsgId.QueryType.Query or not self.is_broadcast_device()) # cannot be a response from all nodes
+               (self.query_type == QueryType.Query or not self.is_broadcast_device()) # cannot be a response from all nodes
 
     def is_query(self) -> bool:
-        return self.is_valid() and self.query_type is MsgId.QueryType.Query
+        return self.is_valid() and self.query_type is QueryType.Query
 
     def is_broadcast_device(self) -> bool:
         return self.device_id == DeviceId.Broadcast()
 
     def is_response(self) -> bool:
-        return self.is_valid() and self.query_type is MsgId.QueryType.Response
+        return self.is_valid() and self.query_type is QueryType.Response
 
     def prepare_response(self) -> MsgId:
         if self.is_query():
-            if self.frame_type == MsgId.FrameType.Command:
-                resp_type = MsgId.FrameType.Telemetry
-            elif self.frame_type == MsgId.FrameType.WriteAttribute:
-                resp_type = MsgId.FrameType.ReadAttribute
+            if self.frame_type == FrameType.Command:
+                resp_type = FrameType.Telemetry
+            elif self.frame_type == FrameType.WriteAttribute:
+                resp_type = FrameType.ReadAttribute
             else:
                 resp_type = self.frame_type
 
             return MsgId(
                 frame_type=resp_type,
-                query_type=MsgId.QueryType.Response,
+                query_type=QueryType.Response,
                 endpoint=self.endpoint,
                 device_id=self.device_id,
                 id_type=self.id_type,
-                extended_id=self.extended_id if self.id_type is MsgId.IdType.Extended else 0
+                extended_id=self.extended_id if self.id_type is IdType.Extended else 0
             )
         else:
             raise Exception(f"{self} MsgID is not a query")
 
     def is_response_of(self, query: MsgId) -> bool:
-
         if self.is_valid():
             expected_response = query.prepare_response()
 
@@ -191,16 +185,16 @@ class MsgId:
         return response.is_response_of(self)
 
     def is_extended(self) -> bool:
-        return self.id_type is MsgId.IdType.Extended
+        return self.id_type is IdType.Extended
 
 # ____________________________________________________________________________________________________________________ #
 
 
 if __name__ == "__main__":
     msgid = MsgId(
-        frame_type=MsgId.FrameType.Telemetry,
-        query_type=MsgId.QueryType.Query,
-        endpoint=MsgId.Endpoint.ApplicationMain,
+        frame_type=FrameType.Telemetry,
+        query_type=QueryType.Query,
+        endpoint=Endpoint.ApplicationMain,
         device_id=DeviceId(DeviceId.Class.CUSTOMPCB, 1)
     )
 

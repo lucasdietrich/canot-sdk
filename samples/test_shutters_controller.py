@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-from caniot.caniot import DeviceId, MsgId
+from caniot.caniot import DeviceId, Endpoint
 from caniot.datatypes import XPS
 from caniot.controller import Controller
 
@@ -28,11 +28,11 @@ with Controller(ip) as ctrl:
             device.factory_reset()
 
         if True:
-            ret = device.command(MsgId.Endpoint.ApplicationMain, [
+            ret = device.command(Endpoint.ApplicationMain, [
                 25,
                 50,
                 75,
                 100
             ])
 
-            device.request_telemetry(MsgId.Endpoint.ApplicationMain)
+            device.request_telemetry(Endpoint.ApplicationMain)

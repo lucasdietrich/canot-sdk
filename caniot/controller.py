@@ -14,7 +14,7 @@ import struct
 import time
 import re
 
-from .caniot import DeviceId, MsgId
+from .caniot import DeviceId, Endpoint
 
 from abc import ABC, abstractmethod
 
@@ -296,7 +296,7 @@ class CaniotAPI(RestAPI):
     def command_cls1(self, did: Union[DeviceId, int], vals: Iterable[str]):
         url = self.ctrl.url.sub("devices/caniot/{did}/endpoint/blc1/command").project(**{
             "did": int(did),
-            "ep": MsgId.Endpoint.BoardLevelControl,
+            "ep": Endpoint.BoardLevelControl,
         })
         return self.ctrl.req("POST", url, json=list(vals), headers=self.app_timeout_header)
 
