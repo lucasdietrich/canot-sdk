@@ -119,7 +119,7 @@ class Controller:
         return result
 
     def download(self, filepath: str, dest: str) -> bool:
-        resp = self._req("GET", self.url.sub(f"files/{filepath}"))
+        resp = self._req("GET", self.url.sub(f"api/files/{filepath}"))
 
         if resp.status_code == 200:
             with open(dest, "wb") as f:
@@ -153,24 +153,24 @@ class Controller:
 
         return self._req(
             "POST",
-            self.url.sub(f"files/{filepath}"),
+            self.url.sub(f"api/files/{filepath}"),
             data=binary,
         )
 
     def get_info(self) -> Dict:
-        return self.req("GET", self.url.sub("info"))
+        return self.req("GET", self.url.sub("api/info"))
 
     def get_ha_stats(self) -> Dict:
-        return self.req("GET", self.url.sub("ha/stats"))
+        return self.req("GET", self.url.sub("api/ha/stats"))
 
     def get_devices_page(self, page: int = 0) -> List:
-        return self.req("GET", self.url.sub(f"devices?page={page}"))
+        return self.req("GET", self.url.sub(f"api/devices?page={page}"))
 
     def get_metrics(self) -> str:
         return self.req("GET", self.url.sub("metrics")).text
 
     def get_room(self, room_id: int) -> dict:
-        return self.req("GET", self.url.sub(f"room/{room_id}"))
+        return self.req("GET", self.url.sub(f"api/room/{room_id}"))
 
     def get_devices(self) -> List:
         page = 0
@@ -192,7 +192,7 @@ class Controller:
         arr = list(vals)
         assert len(arr) <= 8
         assert all(map(lambda x: 0 <= x <= 255 and isinstance(x, int), arr))
-        url = self.url.sub("if/can/{arbitration_id:X}").project(arbitration_id=arbitration_id)
+        url = self.url.sub("api/if/can/{arbitration_id:X}").project(arbitration_id=arbitration_id)
         return self.req("POST", url, json=arr)
         
     def __enter__(self):
@@ -275,7 +275,7 @@ class CaniotAPI(RestAPI):
         return CaniotAPI.Device(self, did)
 
     def request_telemetry(self, did: Union[DeviceId, int], ep: int):
-        url = self.ctrl.url.sub("devices/caniot/{did}/endpoint/{ep}/telemetry").project(**{
+        url = self.ctrl.url.sub("api/devices/caniot/{did}/endpoint/{ep}/telemetry").project(**{
             "did": int(did),
             "ep": ep
         })
@@ -287,28 +287,28 @@ class CaniotAPI(RestAPI):
         arr = list(vals)
         assert len(arr) <= 8
         assert all(map(lambda x: 0 <= x <= 255 and isinstance(x, int), arr))
-        url = self.ctrl.url.sub("devices/caniot/{did}/endpoint/{ep}/command").project(**{
+        url = self.ctrl.url.sub("api/devices/caniot/{did}/endpoint/{ep}/command").project(**{
             "did": int(did),
             "ep": ep,
         })
         return self.ctrl.req("POST", url, json=arr, headers=self.app_timeout_header)
 
     def command_cls1(self, did: Union[DeviceId, int], vals: Iterable[str]):
-        url = self.ctrl.url.sub("devices/caniot/{did}/endpoint/blc1/command").project(**{
+        url = self.ctrl.url.sub("api/devices/caniot/{did}/endpoint/blc1/command").project(**{
             "did": int(did),
             "ep": Endpoint.BoardLevelControl,
         })
         return self.ctrl.req("POST", url, json=list(vals), headers=self.app_timeout_header)
 
     def read_attribute(self, did: Union[DeviceId, int], attr: int) -> requests.Response:
-        url = self.ctrl.url.sub("devices/caniot/{did}/attribute/{attr:x}").project(**{
+        url = self.ctrl.url.sub("api/devices/caniot/{did}/attribute/{attr:x}").project(**{
             "did": int(did),
             "attr": attr
         })
         return self.ctrl.req("GET", url, headers=self.app_timeout_header)
 
     def write_attribute(self, did: Union[DeviceId, int], attr: int, value: Union[int, bytes]):
-        url = self.ctrl.url.sub("devices/caniot/{did}/attribute/{attr:x}").project(**{
+        url = self.ctrl.url.sub("api/devices/caniot/{did}/attribute/{attr:x}").project(**{
             "did": int(did),
             "attr": attr
         })
@@ -316,13 +316,13 @@ class CaniotAPI(RestAPI):
                              headers=self.app_timeout_header)
 
     def factory_reset(self, did: Union[DeviceId, int]):
-        url = self.ctrl.url.sub("devices/caniot/{did}/factory_reset").project(**{
+        url = self.ctrl.url.sub("api/devices/caniot/{did}/factory_reset").project(**{
             "did": int(did),
         })
         return self.ctrl.req("POST", url, headers=self.app_timeout_header)
 
     def reboot(self, did: Union[DeviceId, int]):
-        url = self.ctrl.url.sub("devices/caniot/{did}/reboot").project(**{
+        url = self.ctrl.url.sub("api/devices/caniot/{did}/reboot").project(**{
             "did": int(did),
         })
         return self.ctrl.req("POST", url, headers=self.app_timeout_header)
