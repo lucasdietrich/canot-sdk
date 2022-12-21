@@ -20,8 +20,12 @@ with Controller(ip) as ctrl:
 now = time.time()
 for dev in devices:
     diff = 3600*2
-    last_seen = now - dev["endpoints"][0]["last_event"]["timestamp"] - diff
-    print(f"{dev['addr_type']} {dev['addr_medium']} {dev['addr_repr']} : -{last_seen:.0f}s")
+    for i, ep in enumerate(dev["endpoints"]):
+        if ep["last_event"]["timestamp"] != 0:
+            last_seen = now - ep["last_event"]["timestamp"] - diff
+            print(f"{dev['addr_type']} {dev['addr_medium']} {dev['addr_repr']} ep={i}: -{abs(last_seen):.0f}s")
+        else:
+            print(f"{dev['addr_type']} {dev['addr_medium']} {dev['addr_repr']} ep={i}: never seen")
 
 with open("tmp/ha_devices.json", "w") as f:
    json.dump(devices, f, indent=4)

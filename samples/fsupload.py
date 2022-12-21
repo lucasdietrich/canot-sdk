@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger("caniot.controller")
 logger.setLevel(logging.ERROR)
 
-ip = "192.0.2.1" if False else "192.168.10.240"
+ip = "192.0.2.1" if True else "192.168.10.240"
 
 fsdir = "./fs"
 tmpdir = "./tmp"

@@ -8,6 +8,8 @@ from __future__ import annotations
 import json
 from json.decoder import JSONDecodeError
 
+from dataclasses import dataclass
+
 import requests
 import ssl
 import struct
@@ -15,6 +17,7 @@ import time
 import re
 
 from .caniot import DeviceId, Endpoint
+from .caniot_attributes import AttributeId
 
 from abc import ABC, abstractmethod
 
@@ -27,7 +30,18 @@ from .url import URL
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-    
+
+@dataclass    
+class DFUStatus:
+    mcuboot_version: int
+    image_size: int
+    version_major: int
+    version_minor: int
+    version_revision: int
+    version_build: int
+
+    def __repr__(self) -> str:
+        return f"DFU: Firmware Version {self.version_major}.{self.version_minor}.{self.version_revision}+{self.version_build} size={self.image_size} B (mcuboot version={self.mcuboot_version})"
 
 class Controller:
     def __init__(self, host: str = "192.0.2.1", port: int = None, secure: bool = False, 
@@ -157,6 +171,12 @@ class Controller:
             data=binary,
         )
 
+    def get_dfu_status(self) -> DFUStatus:
+        resp = self._req("GET", self.url.sub("api/dfu"))
+
+        if resp.status_code == 200:
+            return DFUStatus(**resp.json())
+
     def get_info(self) -> Dict:
         return self.req("GET", self.url.sub("api/info"))
 
@@ -250,13 +270,13 @@ class CaniotAPI(RestAPI):
         def __exit__(self, exc_type, exc_value, traceback):
             pass
 
-        def read_attribute(self, attr: int) -> dict:
+        def read_attribute(self, attr: Union[int, AttributeId]) -> dict:
             return self.api.read_attribute(self.did, attr)
 
         def request_telemetry(self, ep: int):
             return self.api.request_telemetry(self.did, ep)
 
-        def write_attribute(self, attr: int, value: int):
+        def write_attribute(self, attr: Union[int, AttributeId], value: int):
             return self.api.write_attribute(self.did, attr, value)
 
         def command(self, ep: int, data: Iterable[int]):
@@ -300,17 +320,17 @@ class CaniotAPI(RestAPI):
         })
         return self.ctrl.req("POST", url, json=list(vals), headers=self.app_timeout_header)
 
-    def read_attribute(self, did: Union[DeviceId, int], attr: int) -> requests.Response:
+    def read_attribute(self, did: Union[DeviceId, int], attr: Union[int, AttributeId]) -> requests.Response:
         url = self.ctrl.url.sub("api/devices/caniot/{did}/attribute/{attr:x}").project(**{
             "did": int(did),
-            "attr": attr
+            "attr": int(attr)
         })
         return self.ctrl.req("GET", url, headers=self.app_timeout_header)
 
-    def write_attribute(self, did: Union[DeviceId, int], attr: int, value: Union[int, bytes]):
+    def write_attribute(self, did: Union[DeviceId, int], attr: Union[int, AttributeId], value: Union[int, bytes]):
         url = self.ctrl.url.sub("api/devices/caniot/{did}/attribute/{attr:x}").project(**{
             "did": int(did),
-            "attr": attr
+            "attr": int(attr)
         })
         return self.ctrl.req("PUT", url, json={"value": str(hex(value))}, 
                              headers=self.app_timeout_header)

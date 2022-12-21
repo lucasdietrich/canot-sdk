@@ -5,6 +5,7 @@
 #
 
 from caniot.caniot import DeviceId, Endpoint
+from caniot.caniot_attributes import AttributeId
 from caniot.datatypes import XPS, HeatingStatus
 from caniot.controller import Controller
 
@@ -21,6 +22,16 @@ with Controller(ip) as ctrl:
     ctrl.caniot.app_timeout = 1.0
 
     with ctrl.caniot.open_device(DeviceId(1, 0)) as device:
+        if False:
+            ret = device.write_attribute(AttributeId.CfgTelemetryFlags, 0xF)
+            print(ret)
+        if False:
+            device.factory_reset()
+        
+        if False:
+            ret = device.write_attribute(AttributeId.CfgTelemetryPeriodMs, 10)
+            print(ret)
+
         if False:
             h1 = HeatingStatus.COMFORT_MIN_1
             h2 = HeatingStatus.COMFORT_MIN_1
@@ -76,7 +87,8 @@ with Controller(ip) as ctrl:
             resp = device.request_telemetry(Endpoint.BoardLevelControl.value)
             pprint(resp)
 
-        resp = device.request_telemetry(Endpoint.BoardLevelControl.value)
-        pprint(resp)
+        if False:
+            resp = device.request_telemetry(Endpoint.BoardLevelControl.value)
+            pprint(resp)
 
         
