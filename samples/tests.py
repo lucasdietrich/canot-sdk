@@ -37,7 +37,7 @@ if __name__ == "__main__":
     if test_n == 0:
         res = t.test_big_data(20000, True)
     elif test_n == 1:
-        res = t.test_stream(simple_chunk_generator(30000, 2048))
+        res = t.test_stream(simple_chunk_generator(50000, 1024))
     elif test_n == 2:
         res = t.test_route_args(2, 3, 4)
     elif test_n == 3:

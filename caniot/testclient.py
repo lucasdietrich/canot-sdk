@@ -35,7 +35,7 @@ class TestClient(Controller):
         req = {
             **self.default_req,
             "method": "POST",
-            "url": self.url + ("test/messaging" if not to_stream_res else "test/streaming"),
+            "url": self.url + ("api/test/messaging" if not to_stream_res else "api/test/streaming"),
             "timeout": self.timeout,
             "headers": self.default_headers,
             "data": data
@@ -59,7 +59,7 @@ class TestClient(Controller):
                 req = {
                     **self.default_req,
                     "method": "GET",
-                    "url": self.url + "info",
+                    "url": self.url + "api/info",
                     "json": {"clientid": clientid, "reqid": reqid},
                     "timeout": self.timeout,
                     "headers": self.default_headers
@@ -76,13 +76,13 @@ class TestClient(Controller):
 
         print("Connection refused:", conn_refused)
 
-    def test_session(self, count: int = 3):
+    def test_session(self, count: int = 20):
         with requests.sessions.Session() as s:
             for i in range(count):
                 req = {
                     **self.default_req,
                     "method": "GET",
-                    "url": self.url + "info",
+                    "url": self.url + "api/info",
                     "json": {"cnt": i},
                     "timeout": self.timeout,
                     "headers": self.default_headers
@@ -96,7 +96,7 @@ class TestClient(Controller):
         req = {
             **self.default_req,
             "method": "POST",
-            "url": self.url + "test/streaming",
+            "url": self.url + "api/test/streaming",
             "data": chunks_generator,
             "headers": {
                 "Content-Type": "application/octet-stream"
@@ -141,7 +141,7 @@ class TestClient(Controller):
         req = {
             **self.default_req,
             "method": "POST",
-            "url": self.url + "test/streaming",
+            "url": self.url + "api/test/streaming",
             "data": file_chunks_generator(),
             "headers": {
                 "Content-Type": multipart.content_type,
@@ -155,7 +155,7 @@ class TestClient(Controller):
         req = {
             **self.default_req,
             "method": "GET",
-            "url": (self.url + "test/route_args/{a}/{b}/{c}").project(a=a, b=b, c=c),
+            "url": (self.url + "api/test/route_args/{a}/{b}/{c}?a=b&c=2").project(a=a, b=b, c=c),
             "headers": self.default_headers
         }
         return requests.request(**req)
@@ -167,7 +167,7 @@ class TestClient(Controller):
         req = {
             **self.default_req,
             "method": "GET",
-            "url": (self.url + "test/headers"),
+            "url": (self.url + "api/test/headers"),
             "headers": {**self.default_headers, **headers}
         }
         return requests.request(**req)
